@@ -1,0 +1,88 @@
+:root{
+  --navy:#1f4e79; --navy2:#2e6aa3; --bg:#f3f5f8; --card:#ffffff; --text:#1c2430; --sub:#5b6676;
+  --line:#dde3ea; --yellow:#fff2cc; --green:#2e7d32; --red:#c62828;
+  --tabh:64px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","BIZ UDPGothic","Noto Sans JP",sans-serif;font-size:16px}
+body{padding-bottom:calc(var(--tabh) + env(safe-area-inset-bottom))}
+.top{position:sticky;top:0;z-index:5;background:var(--navy);color:#fff;
+  padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;display:flex;align-items:center;justify-content:space-between}
+.top h1{font-size:19px;margin:0;font-weight:700}
+.net{font-size:12px;opacity:.85}
+main{padding:12px 12px 24px;max-width:720px;margin:0 auto}
+.view{display:none}.view.active{display:block}
+.hidden{display:none!important}
+.hint{color:var(--sub);font-size:13px;line-height:1.5;margin:8px 4px}
+.center{text-align:center}
+.err{color:var(--red);font-size:14px;min-height:1em}
+
+.searchbar{display:flex;gap:8px;position:sticky;top:calc(env(safe-area-inset-top) + 52px);z-index:4;background:var(--bg);padding:4px 0}
+.searchbar input{flex:1;font-size:17px;padding:12px 14px;border:2px solid var(--navy);border-radius:12px;background:var(--yellow)}
+.iconbtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:64px;
+  border:none;border-radius:12px;background:var(--navy);color:#fff;font-size:12px;font-weight:700}
+
+.list{list-style:none;margin:0;padding:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0}
+.card .name{font-weight:700;font-size:16px;line-height:1.4}
+.card .meta{color:var(--sub);font-size:13px;margin-top:4px;line-height:1.5;word-break:break-all}
+.card .meta b{color:var(--text);font-weight:600}
+.card .price{font-size:13px;color:var(--sub);margin-top:2px}
+.addrow{display:flex;align-items:center;gap:8px;margin-top:10px}
+.qty{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.qty button{width:44px;height:44px;border:none;background:#eef2f7;font-size:22px;color:var(--navy)}
+.qty input{width:56px;height:44px;border:none;text-align:center;font-size:18px;font-weight:700;background:#fff}
+.addbtn{flex:1;height:44px;border:none;border-radius:10px;background:var(--navy2);color:#fff;font-size:16px;font-weight:700}
+.addbtn.done{background:var(--green)}
+
+.group{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:10px 0;overflow:hidden}
+.group h3{margin:0;padding:10px 14px;background:#e8eef6;font-size:15px;color:var(--navy)}
+.citem{padding:10px 14px;border-top:1px solid var(--line)}
+.citem:first-of-type{border-top:none}
+.citem .row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
+.del{border:none;background:none;color:var(--red);font-size:14px;padding:8px}
+
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:10px 0}
+.panel h2{font-size:16px;margin:0 0 6px}
+.field{display:block;font-size:14px;font-weight:700;color:var(--sub);margin:8px 0}
+.field input,.field textarea{display:block;width:100%;margin-top:6px;font-size:17px;padding:12px;border:1px solid #b9c3cf;border-radius:10px;background:var(--yellow);font-family:inherit;color:var(--text)}
+.primary{width:100%;border:none;border-radius:12px;background:var(--navy);color:#fff;font-size:17px;font-weight:700;padding:14px;margin-top:8px}
+.primary:disabled{opacity:.5}
+.ghost{border:1px solid var(--navy);background:#fff;color:var(--navy);border-radius:10px;padding:10px 14px;font-size:15px;font-weight:700}
+.big{padding:16px;font-size:18px;width:100%}
+.row-between{display:flex;justify-content:space-between;align-items:center}
+.howto{margin:6px 0 0 1.2em;padding:0;line-height:1.8;font-size:15px}
+
+.hcard .head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.hcard .no{font-weight:700;font-size:16px}
+.hcard .sup{font-size:15px;font-weight:700;color:var(--navy);margin-top:2px}
+.hcard .items{display:none;margin-top:8px;border-top:1px dashed var(--line);padding-top:6px}
+.hcard.open .items{display:block}
+.hcard .it{font-size:14px;padding:4px 0;display:flex;justify-content:space-between;gap:8px}
+.hcard .btns{display:flex;gap:8px;margin-top:10px}
+.hcard .btns button{flex:1}
+
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:10;display:flex;background:#fff;border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom)}
+.tabs button{flex:1;height:var(--tabh);border:none;background:none;color:#8a94a3;font-size:12px;font-weight:700;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative}
+.tabs button svg{width:26px;height:26px}
+.tabs button.active{color:var(--navy)}
+.badge{position:absolute;top:6px;left:calc(50% + 6px);background:var(--red);color:#fff;border-radius:10px;font-size:11px;padding:1px 6px;min-width:18px}
+
+.overlay{position:fixed;inset:0;z-index:20;background:rgba(15,25,40,.55);display:flex;align-items:center;justify-content:center;padding:16px;flex-direction:column}
+.dialog{background:#fff;border-radius:16px;padding:18px;width:100%;max-width:440px;max-height:85vh;overflow:auto}
+.dialog h2{margin:0 0 8px;font-size:18px}
+.btnrow{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.scanbox{background:#fff;border-radius:16px;padding:12px;width:100%;max-width:480px}
+#reader{width:100%;border-radius:10px;overflow:hidden}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--tabh) + env(safe-area-inset-bottom) + 14px);
+  background:#222;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;z-index:30;max-width:90%;text-align:center}
+.spinner{width:44px;height:44px;border:5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite}
+#busy p{color:#fff;font-weight:700;margin-top:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;color:var(--sub);padding:40px 10px;line-height:1.8}
+.ok{color:var(--green);font-weight:700}
+.olist{margin:8px 0;padding:0;list-style:none}
+.olist li{padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}

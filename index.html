@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>守澤 発注</title>
+<meta name="theme-color" content="#1f4e79">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="守澤発注">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <h1 id="title">商品をさがす</h1>
+  <span id="netState" class="net"></span>
+</header>
+
+<main>
+  <!-- さがす -->
+  <section id="view-search" class="view active">
+    <div class="searchbar">
+      <input id="q" type="search" placeholder="商品名・JANコード・品番・メーカー" autocomplete="off" enterkeyhint="search">
+      <button id="scanBtn" class="iconbtn" aria-label="バーコードを読む">
+        <svg viewBox="0 0 24 24" width="26" height="26"><path d="M3 5h2v14H3zM7 5h1v14H7zM10 5h2v14h-2zM14 5h1v14h-1zM17 5h1v14h-1zM20 5h1v14h-1z" fill="currentColor"/></svg>
+        <span>読む</span>
+      </button>
+    </div>
+    <p id="searchInfo" class="hint">商品名の一部・JANコード・品番・メーカー名で探せます。空白で区切ると、全部を含む商品にしぼれます。</p>
+    <ul id="results" class="list"></ul>
+  </section>
+
+  <!-- 発注かご -->
+  <section id="view-cart" class="view">
+    <div id="cartEmpty" class="empty">発注かごは空です。<br>「さがす」から商品を入れてください。</div>
+    <div id="cartBody"></div>
+    <div id="cartFooter" class="panel hidden">
+      <label class="field">発注者
+        <input id="ordererInCart" type="text" placeholder="名前" autocomplete="name">
+      </label>
+      <label class="field">納品先・納期など（あれば）
+        <textarea id="note" rows="2" placeholder="例：本社へ　11/20まで"></textarea>
+      </label>
+      <p class="hint">仕入先がちがう商品は、仕入先ごとに別の発注書になります。</p>
+      <button id="orderBtn" class="primary big">発注する</button>
+    </div>
+  </section>
+
+  <!-- 履歴 -->
+  <section id="view-history" class="view">
+    <div class="row-between">
+      <p class="hint">新しい順に50件まで出ます。</p>
+      <button id="reloadHistory" class="ghost">新しくする</button>
+    </div>
+    <ul id="historyList" class="list"></ul>
+  </section>
+
+  <!-- 設定 -->
+  <section id="view-settings" class="view">
+    <div class="panel">
+      <label class="field">発注者の名前
+        <input id="orderer" type="text" placeholder="例：小田" autocomplete="name">
+      </label>
+      <label class="field">社内の合言葉
+        <input id="passkey" type="password" placeholder="合言葉" autocomplete="off">
+      </label>
+      <button id="saveSettings" class="primary">保存する</button>
+    </div>
+    <div class="panel">
+      <h2>商品データ</h2>
+      <p id="dataInfo" class="hint">—</p>
+      <button id="refreshData" class="ghost">商品データを取り直す</button>
+    </div>
+    <div class="panel">
+      <h2>ホーム画面に置くには（iPhone）</h2>
+      <ol class="howto">
+        <li>Safariでこのページを開く</li>
+        <li>下の「共有」ボタン（四角から矢印）を押す</li>
+        <li>「ホーム画面に追加」を押す</li>
+      </ol>
+    </div>
+    <p class="hint center">守澤発注アプリ　版 <span id="appVer"></span></p>
+  </section>
+</main>
+
+<nav class="tabs">
+  <button data-view="search" class="active"><svg viewBox="0 0 24 24"><path d="M10 4a6 6 0 104.47 10l4.27 4.27 1.41-1.41L15.9 12.6A6 6 0 0010 4zm0 2a4 4 0 110 8 4 4 0 010-8z" fill="currentColor"/></svg>さがす</button>
+  <button data-view="cart"><svg viewBox="0 0 24 24"><path d="M7 18a2 2 0 100 4 2 2 0 000-4zm10 0a2 2 0 100 4 2 2 0 000-4zM3 3h2l2.6 10.4A2 2 0 009.5 15H18v-2H9.6l-.3-1H18a1 1 0 001-.8l1.5-6A1 1 0 0019.5 4H6.2L5.7 2H3z" fill="currentColor"/></svg>発注かご<span id="cartBadge" class="badge hidden">0</span></button>
+  <button data-view="history"><svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 00-9 9H1l4 4 4-4H6a7 7 0 112.05 4.95l-1.42 1.42A9 9 0 1013 3zm-1 5v5l4.25 2.52.77-1.28L13.5 12.2V8z" fill="currentColor"/></svg>履歴</button>
+  <button data-view="settings"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.5 7.5 0 000-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 00-1.7-1L15 3h-4l-.4 2.9a7.6 7.6 0 00-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 000 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1L11 21h4l.4-2.9c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 110-7 3.5 3.5 0 010 7z" fill="currentColor"/></svg>設定</button>
+</nav>
+
+<!-- バーコード読み取り -->
+<div id="scanner" class="overlay hidden">
+  <div class="scanbox">
+    <div id="reader"></div>
+    <p class="hint center">商品のバーコードを枠の中に写してください</p>
+    <button id="scanClose" class="ghost big">やめる</button>
+  </div>
+</div>
+
+<!-- 合言葉の入力（はじめて開いたとき） -->
+<div id="login" class="overlay hidden">
+  <div class="dialog">
+    <h2>はじめに</h2>
+    <p>社内の合言葉と、発注者の名前を入れてください。</p>
+    <label class="field">社内の合言葉<input id="loginKey" type="password" autocomplete="off"></label>
+    <label class="field">発注者の名前<input id="loginName" type="text" autocomplete="name"></label>
+    <p id="loginErr" class="err"></p>
+    <button id="loginBtn" class="primary big">はじめる</button>
+  </div>
+</div>
+
+<!-- 発注の確認・結果 -->
+<div id="modal" class="overlay hidden">
+  <div class="dialog">
+    <div id="modalBody"></div>
+    <div id="modalBtns" class="btnrow"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+<div id="busy" class="overlay hidden"><div class="spinner"></div><p id="busyText">読み込み中…</p></div>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
+<script src="app.js"></script>
+</body>
+</html>
