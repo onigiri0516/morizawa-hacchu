@@ -4,7 +4,7 @@
  */
 (function () {
   'use strict';
-  const APP_VERSION = '1.1.1';
+  const APP_VERSION = '1.2.0';
   const API = (window.APP_CONFIG && window.APP_CONFIG.API_URL) || '';
   const KEY = (window.APP_CONFIG && window.APP_CONFIG.KEY) || '';
   const MAX_RESULTS = 100;
@@ -239,26 +239,82 @@
     ]);
   }
 
-  // ---------- 発注書PDF ----------
+  // ---------- PDF（作る → アプリの中で確認 → 印刷・保存） ----------
   const pdfCache = {};
+  function b64ToFile(b64, name) {
+    const bin = atob(b64); const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new File([bytes], name, { type: 'application/pdf' });
+  }
   async function openPdf(no, btn, base, word) {
-    // 1回目：PDFを作ってもらう → 2回目のタップで開く（iPhoneの決まりで、タップした瞬間に開く必要があるため）
     base = base || API; word = word || '発注書';
-    if (pdfCache[no]) { sharePdf(pdfCache[no]); return; }
+    if (pdfCache[no]) { previewPdf(pdfCache[no], word + '（' + no + '）'); return; }
     const label = btn ? btn.textContent : '';
     if (btn) { btn.disabled = true; btn.textContent = word + 'を作っています…'; }
     try {
       const r = await jsonFrom(base, 'pdf', { no });
-      const bin = atob(r.pdf); const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      pdfCache[no] = new File([bytes], r.name, { type: 'application/pdf' });
-      if (btn) { btn.disabled = false; btn.textContent = word + 'を開く（' + no + '）'; btn.className = 'primary'; }
-      else sharePdf(pdfCache[no]);
+      pdfCache[no] = b64ToFile(r.pdf, r.name);
+      previewPdf(pdfCache[no], word + '（' + no + '）');
     } catch (e) {
-      if (btn) { btn.disabled = false; btn.textContent = label; }
       toast(e.message, 3500);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = label; }
     }
   }
+
+  // PDFの中身を画面に出す（指で広げたり、＋ボタンで大きくして確認できる）
+  const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+  let pdfjsLoading = null;
+  function loadPdfJs() {
+    if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    if (pdfjsLoading) return pdfjsLoading;
+    pdfjsLoading = new Promise((ok, ng) => {
+      const sc = document.createElement('script'); sc.src = PDFJS + 'pdf.min.js';
+      sc.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.js'; ok(window.pdfjsLib); };
+      sc.onerror = () => { pdfjsLoading = null; ng(new Error('表示の準備ができませんでした')); };
+      document.head.appendChild(sc);
+    });
+    return pdfjsLoading;
+  }
+  let pvFile = null, pvZoom = 1, pvUrl = null;
+  function setZoom(z) {
+    pvZoom = Math.max(1, Math.min(4, z));
+    $('pvPages').style.width = (pvZoom * 100) + '%';
+    $('pvZoomLabel').textContent = Math.round(pvZoom * 100) + '%';
+  }
+  async function previewPdf(file, title) {
+    pvFile = file;
+    $('pvTitle').textContent = title || file.name;
+    const box = $('pvPages'); box.innerHTML = '<p class="pvmsg">表示しています…</p>';
+    setZoom(1);
+    $('pdfview').classList.remove('hidden');
+    document.body.classList.add('noscroll');
+    try {
+      const lib = await loadPdfJs();
+      const data = new Uint8Array(await file.arrayBuffer());
+      const doc = await lib.getDocument({ data, cMapUrl: PDFJS + 'cmaps/', cMapPacked: true, standardFontDataUrl: PDFJS + 'standard_fonts/' }).promise;
+      box.innerHTML = '';
+      const target = Math.min(2600, Math.max(1400, $('pvScroll').clientWidth * (window.devicePixelRatio || 2) * 2.5));
+      for (let n = 1; n <= doc.numPages; n++) {
+        const page = await doc.getPage(n);
+        const v0 = page.getViewport({ scale: 1 });
+        const vp = page.getViewport({ scale: target / v0.width });
+        const cv = document.createElement('canvas'); cv.width = vp.width; cv.height = vp.height; cv.className = 'pvpage';
+        box.appendChild(cv);
+        await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+      }
+    } catch (e) {
+      // 表示の道具が読めないときは、スマホのPDF表示にまかせる
+      if (pvUrl) URL.revokeObjectURL(pvUrl);
+      pvUrl = URL.createObjectURL(file);
+      box.innerHTML = '<iframe class="pvframe" src="' + pvUrl + '"></iframe>';
+    }
+  }
+  function closePreview() {
+    $('pdfview').classList.add('hidden'); document.body.classList.remove('noscroll');
+    $('pvPages').innerHTML = '';
+  }
+  function showPdfBase64(b64, name, title) { previewPdf(b64ToFile(b64, name), title); }
   function sharePdf(file) {
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       navigator.share({ files: [file], title: file.name }).catch(() => {});
@@ -318,7 +374,7 @@
   }
 
   // ---------- 画面の切り替え ----------
-  const titles = { search: '商品をさがす', cart: '発注かご', juchu: '受注（お店から）', stock: '在庫', history: '履歴', settings: '設定' };
+  const titles = { search: '商品をさがす', cart: '発注かご', juchu: '受注（お店から）', stock: '在庫', history: '履歴', settings: '設定', card: '品切れカード' };
   function show(view) {
     document.querySelectorAll('.view').forEach((v) => v.classList.toggle('active', v.id === 'view-' + view));
     document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
@@ -373,6 +429,10 @@
       e.target.value = v; cart[i].qty = v; saveCart();
     });
     $('orderBtn').addEventListener('click', placeOrder);
+    $('pvClose').addEventListener('click', closePreview);
+    $('pvShare').addEventListener('click', () => { if (pvFile) sharePdf(pvFile); });
+    $('pvPlus').addEventListener('click', () => setZoom(pvZoom + 0.5));
+    $('pvMinus').addEventListener('click', () => setZoom(pvZoom - 0.5));
 
     $('historyList').addEventListener('click', (e) => {
       const btn = e.target.closest('button'); if (!btn) return;
@@ -395,7 +455,7 @@
   }
 
   // 受注・在庫の画面（juchu.js）から使う道具
-  window.MZ = { $, esc, norm, yen, store, toast, busy, modal, closeModal, idb, jsonFrom, postTo, openPdf, show,
+  window.MZ = { $, esc, norm, yen, store, toast, busy, modal, closeModal, idb, jsonFrom, postTo, openPdf, showPdfBase64, show,
     get orderer() { return store.get('orderer', ''); } };
 
   // ---------- はじまり ----------

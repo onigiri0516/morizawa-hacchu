@@ -128,3 +128,28 @@ main{padding:12px 12px 24px;max-width:720px;margin:0 auto}
 .scard .q{font-size:22px;font-weight:700;color:var(--navy);min-width:48px;text-align:right}
 .scard .q.zero{color:var(--red)}
 .row-between .ghost{white-space:nowrap;flex:none;margin-left:8px}
+
+/* 1.2.0 品切れカード・PDFの確認 */
+.must{display:inline-block;background:var(--red);color:#fff;font-size:11px;border-radius:6px;padding:1px 6px;margin-left:4px;vertical-align:1px}
+.sel{display:block;width:100%;margin-top:6px;font-size:17px;padding:12px;border:1px solid #b9c3cf;border-radius:10px;background:#fff;font-family:inherit}
+.backlink{border:none;background:none;color:var(--navy);font-size:16px;font-weight:700;padding:6px 2px}
+.ccard{border-top:1px solid var(--line);padding:10px 0}
+.ccard:first-child{border-top:none}
+.ccard .chead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ccard .code{font-size:20px;font-weight:700;color:var(--navy)}
+.ccard input,.ccard textarea{display:block;width:100%;margin-top:6px;font-size:15px;padding:8px 10px;border:1px solid #b9c3cf;border-radius:8px;background:var(--yellow);font-family:inherit}
+.ccard textarea{resize:vertical}
+.ccard small{color:var(--sub);font-size:12px}
+.noscroll{overflow:hidden}
+.pdfview{position:fixed;inset:0;z-index:40;background:#505860;display:flex;flex-direction:column}
+.pvhead{display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top) + 8px) 10px 8px;background:var(--navy);color:#fff}
+.pvtitle{flex:1;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pvbtn{border:1px solid rgba(255,255,255,.6);background:none;color:#fff;border-radius:8px;padding:6px 12px;font-size:16px;font-weight:700;min-width:40px}
+.pvzoom{display:flex;align-items:center;gap:6px;font-size:13px}
+.pvscroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:10px}
+.pvpages{width:100%;margin:0 auto}
+.pvpage{display:block;width:100%;height:auto;background:#fff;margin:0 auto 10px;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.pvframe{width:100%;height:70vh;border:none;background:#fff}
+.pvmsg{color:#fff;text-align:center;margin-top:40px}
+.pvfoot{background:#fff;padding:8px 12px calc(env(safe-area-inset-bottom) + 8px)}
+.pvfoot .primary{margin-top:0}

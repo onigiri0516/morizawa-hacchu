@@ -72,6 +72,10 @@
     </div>
     <div id="jTotals" class="panel hidden"></div>
     <div class="panel">
+      <label class="field">守澤商店の担当者 <span class="must">必須</span>
+        <input id="jStaff" type="text" placeholder="例：小田" autocomplete="off">
+      </label>
+      <p class="hint" style="margin-top:-2px">受注書の「守澤商店 担当者」の欄に入ります。</p>
       <label class="field">入力した人
         <input id="jOrderer" type="text" placeholder="名前" autocomplete="name">
       </label>
@@ -82,6 +86,38 @@
       <button id="jClearBtn" class="ghost big" style="margin-top:8px">入力をぜんぶ消す</button>
       <p class="hint">確定すると、在庫から引き、足りない分は「要発注」に入ります。受注書（PDF）はお店に渡せます。</p>
     </div>
+    <div class="panel">
+      <h2>品切れカード</h2>
+      <p class="hint">お店に置く品切れカード（5桁コード・メーカー・商品名・お知らせ）をPDFで作れます。</p>
+      <button id="jCardBtn" class="ghost big">品切れカードを作る</button>
+    </div>
+  </section>
+
+  <!-- 品切れカード -->
+  <section id="view-card" class="view">
+    <button id="cBack" class="backlink">‹ 受注にもどる</button>
+    <div class="panel">
+      <h2>カードにする商品</h2>
+      <input id="cProdQ" class="inp" type="search" placeholder="5桁の商品コード・商品名・メーカー" autocomplete="off" enterkeyhint="search">
+      <ul id="cProdList" class="picklist"></ul>
+      <button id="cFromJuchu" class="ghost" style="margin-top:8px;width:100%">入力中の受注の商品をまとめて入れる</button>
+      <p class="hint">「全データ」の商品から探せます。1回のPDFで15枚まで（A4　横5枚×3段）。</p>
+    </div>
+    <div class="panel">
+      <label class="field">カードの価格
+        <select id="cPrice" class="sel">
+          <option value="新売価">新売価を出す</option>
+          <option value="新定価">新定価を出す</option>
+          <option value="なし">価格を出さない</option>
+        </select>
+      </label>
+    </div>
+    <div class="panel">
+      <div class="row-between"><h2 style="margin:0">カード <span id="cCount">0</span> / 15 枚</h2><button id="cClear" class="ghost">ぜんぶ消す</button></div>
+      <div id="cList"></div>
+      <p id="cEmpty" class="hint">まだ入っていません。上で商品を探して押してください。</p>
+    </div>
+    <button id="cMake" class="primary big">PDFを作って確認する</button>
   </section>
 
   <!-- 在庫 -->
@@ -182,6 +218,20 @@
   <div class="dialog">
     <div id="modalBody"></div>
     <div id="modalBtns" class="btnrow"></div>
+  </div>
+</div>
+
+<!-- PDFの確認 -->
+<div id="pdfview" class="pdfview hidden">
+  <div class="pvhead">
+    <button id="pvClose" class="pvbtn">閉じる</button>
+    <span id="pvTitle" class="pvtitle"></span>
+    <span class="pvzoom"><button id="pvMinus" class="pvbtn">−</button><span id="pvZoomLabel">100%</span><button id="pvPlus" class="pvbtn">＋</button></span>
+  </div>
+  <div id="pvScroll" class="pvscroll"><div id="pvPages" class="pvpages"></div></div>
+  <div class="pvfoot">
+    <button id="pvShare" class="primary big">印刷・保存する</button>
+    <p class="hint center" style="margin:6px 0 0">押すと共有の画面が出ます。「プリント」で印刷、「ファイルに保存」で保存できます。</p>
   </div>
 </div>
 

@@ -148,20 +148,22 @@
     if (!BASE) { modal('<p>' + NOT_READY + '</p>'); return; }
     if (!draft.customer) { toast('お客様を選んでください'); $('jCustQ').focus(); return; }
     if (!draft.lines.length) { toast('商品を入れてください'); $('jProdQ').focus(); return; }
+    const staff = $('jStaff').value.trim();
+    if (!staff) { toast('守澤商店の担当者を入れてください'); $('jStaff').focus(); $('jStaff').scrollIntoView({ block: 'center' }); return; }
     const orderer = $('jOrderer').value.trim();
     if (!orderer) { toast('入力した人の名前を入れてください'); $('jOrderer').focus(); return; }
     store.set('orderer', orderer);
     if (quote && quote.lines.some((q) => !q.found)) { toast('見つからない商品コードがあります。とりけしてください', 3500); return; }
     const c = draft.customer;
     modal('<h2>この内容で受注を確定しますか？</h2><p><b>' + esc(c.name) + '</b>（' + esc(c.code) + '）</p>' +
-      '<p>' + draft.lines.length + '品目' + (quote ? '　合計 <b>' + yen(quote.total) + '</b>（税込）' : '') + '</p>' +
+      '<p>守澤商店 担当者：<b>' + esc(staff) + '</b></p><p>' + draft.lines.length + '品目' + (quote ? '　合計 <b>' + yen(quote.total) + '</b>（税込）' : '') + '</p>' +
       '<p class="hint">確定すると在庫から引かれます。</p>', [
       { label: '確定する', primary: true, onClick: async () => {
         busy(true, '受注を保存しています…');
         try {
-          const r = await post('order', { customer: c.code, orderer, note: $('jNote').value.trim(),
+          const r = await post('order', { customer: c.code, staff, orderer, note: $('jNote').value.trim(),
             items: draft.lines.map((l) => ({ code: l.code, qty: l.qty })) });
-          draft = { customer: null, lines: [] }; quote = null; $('jNote').value = ''; save(); renderCustomer(); renderLines();
+          draft = { customer: null, lines: [] }; quote = null; $('jNote').value = ''; $('jStaff').value = ''; save(); renderCustomer(); renderLines();
           busy(false);
           modal('<h2 class="ok">受注を保存しました</h2><p>受注番号 <b>' + esc(r.no) + '</b><br>' + esc(c.name) + '　' + r.count + '品目　合計 ' + yen(r.total) + '</p>' +
             (r.shortCount ? '<p><span class="tag ng">在庫が足りない商品 ' + r.shortCount + ' 品目</span><br><span class="hint">「在庫」→「要発注」に入りました。</span></p>' : '<p><span class="tag ok">すべて在庫から出せます</span></p>') +
@@ -186,7 +188,7 @@
       box.innerHTML = r.orders.map((o) =>
         '<li class="card hcard" data-no="' + esc(o.no) + '">' +
           '<div class="head"><div><div class="no">' + esc(o.no) + '</div><div class="sup">' + esc(o.name) + '</div></div>' +
-          '<div class="meta" style="text-align:right">' + esc(o.date) + '<br>' + esc(o.orderer || '') + '<br>' + o.items.length + '品目　' + yen(o.total) + '（税抜）</div></div>' +
+          '<div class="meta" style="text-align:right">' + esc(o.date) + '<br>担当 ' + esc(o.staff || '—') + '<br>' + o.items.length + '品目　' + yen(o.total) + '（税抜）</div></div>' +
           '<div class="items">' + o.items.map((it) => '<div class="it"><span>' + esc(it.name) + '<br><small>' + esc(it.code) + '　' + esc(it.price) + '円　' + esc(it.judge) + '</small></span><b>' + esc(it.qty) + '</b></div>').join('') +
           (o.note ? '<p class="hint">備考：' + esc(o.note) + '</p>' : '') + '</div>' +
           '<div class="btns"><button class="ghost" data-act="toggle">中身を見る</button><button class="ghost" data-act="pdf">受注書（PDF）</button></div>' +
@@ -253,9 +255,46 @@
     if (kind === 'stock') loadStock(); else loadNeeds();
   }
 
+  // ---------- 品切れカード ----------
+  const CARD_MAX = 15;
+  const CARD_MEMO = '只今手配中です\nしばらくお待ち下さい。';
+  let cards = store.get('cards', []);
+  const shortName = (p) => { const n = String(p.name || ''); const m = String(p.maker || ''); return m && n.indexOf(m) === 0 ? n.slice(m.length).trim() : n; };
+  function saveCards() { store.set('cards', cards); renderCards(); }
+  function addCard(p) {
+    if (cards.length >= CARD_MAX) { toast('1回のPDFは15枚までです。先にPDFを作ってください', 3000); return false; }
+    cards.push({ code: p.code, maker: p.maker, name: shortName(p), memo: CARD_MEMO });
+    return true;
+  }
+  function renderCards() {
+    $('cCount').textContent = cards.length;
+    $('cEmpty').classList.toggle('hidden', cards.length > 0);
+    $('cList').innerHTML = cards.map((c, i) =>
+      '<div class="ccard" data-i="' + i + '">' +
+        '<div class="chead"><div><span class="code">' + esc(c.code) + '</span>　<b>' + esc(c.maker) + '</b></div><button class="del" data-act="del">とりけす</button></div>' +
+        '<small>商品名（カードに出る名前。長いときは短くできます）</small><input data-f="name" value="' + esc(c.name) + '">' +
+        '<small>お知らせ</small><textarea data-f="memo" rows="2">' + esc(c.memo) + '</textarea>' +
+      '</div>').join('');
+  }
+  async function makeCards() {
+    if (!BASE) { modal('<p>' + NOT_READY + '</p>'); return; }
+    if (!cards.length) { toast('カードにする商品を入れてください'); return; }
+    busy(true, '品切れカードを作っています…');
+    try {
+      const r = await post('cards', { price: $('cPrice').value, cards: cards });
+      busy(false);
+      M.showPdfBase64(r.pdf, r.name, '品切れカード（' + cards.length + '枚）');
+    } catch (e) { busy(false); toast(e.message, 3500); }
+  }
+
   // ---------- できごとの登録 ----------
   function bind() {
-    picker($('jCustQ'), $('jCustList'), findCustomers, 'c', (c) => { draft.customer = { code: c.code, name: c.name, staff: c.staff }; quote = null; renderCustomer(); changed(); });
+    picker($('jCustQ'), $('jCustList'), findCustomers, 'c', (c) => {
+      draft.customer = { code: c.code, name: c.name, staff: c.staff }; quote = null;
+      if (c.staff) { $('jStaff').value = c.staff; draft.staff = c.staff; }
+      renderCustomer(); changed();
+    });
+    $('jStaff').addEventListener('input', () => { draft.staff = $('jStaff').value.trim(); save(); });
     $('jCustSel').addEventListener('click', (e) => { if (e.target.id === 'jCustChange') { draft.customer = null; quote = null; renderCustomer(); changed(); $('jCustQ').focus(); } });
     picker($('jProdQ'), $('jProdList'), findProducts, 'p', (p) => {
       const f = draft.lines.find((l) => l.code === p.code);
@@ -276,7 +315,7 @@
     });
     $('jOrderBtn').addEventListener('click', confirmOrder);
     $('jClearBtn').addEventListener('click', () => modal('<h2>入力をぜんぶ消しますか？</h2>', [
-      { label: '消す', primary: true, onClick: () => { draft = { customer: null, lines: [] }; quote = null; $('jNote').value = ''; renderCustomer(); changed(); } },
+      { label: '消す', primary: true, onClick: () => { draft = { customer: null, lines: [] }; quote = null; $('jNote').value = ''; $('jStaff').value = ''; renderCustomer(); changed(); } },
       { label: 'やめる' }]));
 
     picker($('sProdQ'), $('sProdList'), findProducts, 'p', selectStock);
@@ -308,5 +347,32 @@
     document.addEventListener('refreshjuchu', () => { if (BASE) ensureLists(true); });
   }
 
-  bind(); badge(); renderCustomer(); renderLines(); loadLocal();
+  function bindCards() {
+    $('jCardBtn').addEventListener('click', () => M.show('card'));
+    $('cBack').addEventListener('click', () => M.show('juchu'));
+    picker($('cProdQ'), $('cProdList'), findProducts, 'p', (p) => { if (addCard(p)) { saveCards(); toast('入れました'); } });
+    $('cFromJuchu').addEventListener('click', () => {
+      if (!draft.lines.length) { toast('入力中の受注に商品がありません'); return; }
+      let n = 0;
+      for (const l of draft.lines) { if (cards.some((c) => c.code === l.code)) continue; if (!addCard(l)) break; n++; }
+      saveCards(); toast(n + '枚 入れました');
+    });
+    $('cList').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-act="del"]'); if (!b) return;
+      cards.splice(Number(b.closest('.ccard').dataset.i), 1); saveCards();
+    });
+    $('cList').addEventListener('input', (e) => {
+      const f = e.target.dataset.f; if (!f) return;
+      cards[Number(e.target.closest('.ccard').dataset.i)][f] = e.target.value; store.set('cards', cards);
+    });
+    $('cClear').addEventListener('click', () => modal('<h2>カードをぜんぶ消しますか？</h2>', [
+      { label: '消す', primary: true, onClick: () => { cards = []; saveCards(); } }, { label: 'やめる' }]));
+    $('cPrice').value = store.get('cardPrice', '新売価');
+    $('cPrice').addEventListener('change', () => store.set('cardPrice', $('cPrice').value));
+    $('cMake').addEventListener('click', makeCards);
+    document.addEventListener('viewshown', (e) => { if (e.detail === 'card') { ensureLists(false); renderCards(); } });
+  }
+
+  bind(); bindCards(); badge(); renderCustomer(); renderLines(); renderCards(); loadLocal();
+  $('jStaff').value = draft.staff || (draft.customer && draft.customer.staff) || '';
 })();
