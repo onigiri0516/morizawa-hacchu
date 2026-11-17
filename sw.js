@@ -1,5 +1,5 @@
 // 画面のファイルをスマホに保存して、電波が弱くても開けるようにする
-const CACHE = 'hacchu-v1.1.1';
+const CACHE = 'hacchu-v1.1.2';
 const FILES = ['./', './index.html', './style.css', './app.js', './juchu.js', './config.js', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 
