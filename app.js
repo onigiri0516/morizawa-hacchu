@@ -4,8 +4,9 @@
  */
 (function () {
   'use strict';
-  const APP_VERSION = '1.0.0';
+  const APP_VERSION = '1.1.1';
   const API = (window.APP_CONFIG && window.APP_CONFIG.API_URL) || '';
+  const KEY = (window.APP_CONFIG && window.APP_CONFIG.KEY) || '';
   const MAX_RESULTS = 100;
 
   // ---------- ちょっとした道具 ----------
@@ -38,31 +39,35 @@
   function closeModal() { $('modal').classList.add('hidden'); }
 
   // ---------- スプレッドシートとのやりとり ----------
-  async function apiGet(action, params) {
-    if (!API) throw new Error('アプリの設定（つなぎ先）がまだ入っていません');
-    const q = new URLSearchParams(Object.assign({ action, key: store.get('key', '') }, params || {}));
-    const res = await fetch(API + '?' + q.toString(), { method: 'GET', redirect: 'follow' });
+  // base：つなぎ先（発注書 または 受注書）
+  async function getFrom(base, action, params) {
+    if (!base) throw new Error('アプリの設定（つなぎ先）がまだ入っていません');
+    const q = new URLSearchParams(Object.assign({ action, key: KEY }, params || {}));
+    const res = await fetch(base + '?' + q.toString(), { method: 'GET', redirect: 'follow' });
     if (!res.ok) throw new Error('通信に失敗しました（' + res.status + '）');
     return res;
   }
-  async function apiJson(action, params) {
-    const res = await apiGet(action, params);
+  async function jsonFrom(base, action, params) {
+    const res = await getFrom(base, action, params);
     const j = await res.json();
     if (!j.ok) throw new Error(j.error || 'エラーがおきました');
     return j;
   }
-  async function apiPost(action, body) {
-    if (!API) throw new Error('アプリの設定（つなぎ先）がまだ入っていません');
-    const res = await fetch(API, {
+  async function postTo(base, action, body) {
+    if (!base) throw new Error('アプリの設定（つなぎ先）がまだ入っていません');
+    const res = await fetch(base, {
       method: 'POST', redirect: 'follow',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(Object.assign({ action, key: store.get('key', '') }, body || {})),
+      body: JSON.stringify(Object.assign({ action, key: KEY }, body || {})),
     });
     if (!res.ok) throw new Error('通信に失敗しました（' + res.status + '）');
     const j = await res.json();
     if (!j.ok) throw new Error(j.error || 'エラーがおきました');
     return j;
   }
+  const apiGet = (a, p) => getFrom(API, a, p);
+  const apiJson = (a, p) => jsonFrom(API, a, p);
+  const apiPost = (a, b) => postTo(API, a, b);
 
   // ---------- 商品データ（スマホの中に保存） ----------
   const idb = {
@@ -236,17 +241,18 @@
 
   // ---------- 発注書PDF ----------
   const pdfCache = {};
-  async function openPdf(no, btn) {
+  async function openPdf(no, btn, base, word) {
     // 1回目：PDFを作ってもらう → 2回目のタップで開く（iPhoneの決まりで、タップした瞬間に開く必要があるため）
+    base = base || API; word = word || '発注書';
     if (pdfCache[no]) { sharePdf(pdfCache[no]); return; }
     const label = btn ? btn.textContent : '';
-    if (btn) { btn.disabled = true; btn.textContent = '発注書を作っています…'; }
+    if (btn) { btn.disabled = true; btn.textContent = word + 'を作っています…'; }
     try {
-      const r = await apiJson('pdf', { no });
+      const r = await jsonFrom(base, 'pdf', { no });
       const bin = atob(r.pdf); const bytes = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
       pdfCache[no] = new File([bytes], r.name, { type: 'application/pdf' });
-      if (btn) { btn.disabled = false; btn.textContent = '発注書を開く（' + no + '）'; btn.className = 'primary'; }
+      if (btn) { btn.disabled = false; btn.textContent = word + 'を開く（' + no + '）'; btn.className = 'primary'; }
       else sharePdf(pdfCache[no]);
     } catch (e) {
       if (btn) { btn.disabled = false; btn.textContent = label; }
@@ -282,6 +288,15 @@
     } catch (e) { box.innerHTML = '<li class="empty">' + esc(e.message) + '</li>'; }
   }
 
+  function showHistory(kind) {
+    store.set('histKind', kind);
+    document.querySelectorAll('#histSeg button').forEach((b) => b.classList.toggle('active', b.dataset.kind === kind));
+    $('histHacchu').classList.toggle('hidden', kind !== 'hacchu');
+    $('histJuchu').classList.toggle('hidden', kind !== 'juchu');
+    if (kind === 'hacchu') loadHistory();
+    else document.dispatchEvent(new CustomEvent('juchuhistory'));
+  }
+
   // ---------- バーコード ----------
   let scanner = null;
   async function startScan() {
@@ -303,30 +318,19 @@
   }
 
   // ---------- 画面の切り替え ----------
-  const titles = { search: '商品をさがす', cart: '発注かご', history: '発注履歴', settings: '設定' };
+  const titles = { search: '商品をさがす', cart: '発注かご', juchu: '受注（お店から）', stock: '在庫', history: '履歴', settings: '設定' };
   function show(view) {
     document.querySelectorAll('.view').forEach((v) => v.classList.toggle('active', v.id === 'view-' + view));
     document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
     $('title').textContent = titles[view];
     if (view === 'cart') renderCart();
-    if (view === 'history') loadHistory();
+    if (view === 'history') showHistory(store.get('histKind', 'hacchu'));
+    document.dispatchEvent(new CustomEvent('viewshown', { detail: view }));
     window.scrollTo(0, 0);
   }
 
   // ---------- はじめの設定 ----------
-  async function login() {
-    const key = $('loginKey').value.trim(); const name = $('loginName').value.trim();
-    if (!key || !name) { $('loginErr').textContent = '合言葉と名前を入れてください'; return; }
-    store.set('key', key);
-    try {
-      await apiJson('ping');
-      store.set('orderer', name);
-      $('login').classList.add('hidden');
-      fillSettings();
-      await downloadProducts(false);
-    } catch (e) { $('loginErr').textContent = e.message; }
-  }
-  function fillSettings() { $('orderer').value = store.get('orderer', ''); $('passkey').value = store.get('key', ''); }
+  function fillSettings() { $('orderer').value = store.get('orderer', ''); }
 
   // ---------- できごとの登録 ----------
   function qtyStep(root, d) {
@@ -335,6 +339,8 @@
   }
   function bind() {
     document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => show(b.dataset.view)));
+    $('gearBtn').addEventListener('click', () => show('settings'));
+    document.querySelectorAll('#histSeg button').forEach((b) => b.addEventListener('click', () => showHistory(b.dataset.kind)));
     let t = null;
     $('q').addEventListener('input', () => { clearTimeout(t); t = setTimeout(doSearch, 250); });
     $('q').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.target.blur(); doSearch(); } });
@@ -374,32 +380,29 @@
       if (btn.dataset.act === 'toggle') { li.classList.toggle('open'); btn.textContent = li.classList.contains('open') ? '閉じる' : '中身を見る'; }
       if (btn.dataset.act === 'pdf') openPdf(li.dataset.no, btn);
     });
-    $('reloadHistory').addEventListener('click', loadHistory);
+    $('reloadHistory').addEventListener('click', () => showHistory(store.get('histKind', 'hacchu')));
 
     $('saveSettings').addEventListener('click', async () => {
       store.set('orderer', $('orderer').value.trim());
-      store.set('key', $('passkey').value.trim());
       try { await apiJson('ping'); toast('保存しました'); } catch (e) { toast(e.message, 3500); }
     });
     $('refreshData').addEventListener('click', async () => {
-      try { await downloadProducts(true); toast('商品データを取り直しました'); } catch (e) { toast(e.message, 3500); }
+      try { await downloadProducts(true); document.dispatchEvent(new CustomEvent('refreshjuchu')); toast('商品データを取り直しました'); } catch (e) { toast(e.message, 3500); }
     });
-    $('loginBtn').addEventListener('click', login);
 
-    const net = () => { $('netState').textContent = navigator.onLine ? '' : '圏外（検索だけできます）'; };
+    const net = () => { $('netState').textContent = navigator.onLine ? '' : '圏外'; };
     window.addEventListener('online', net); window.addEventListener('offline', net); net();
   }
+
+  // 受注・在庫の画面（juchu.js）から使う道具
+  window.MZ = { $, esc, norm, yen, store, toast, busy, modal, closeModal, idb, jsonFrom, postTo, openPdf, show,
+    get orderer() { return store.get('orderer', ''); } };
 
   // ---------- はじまり ----------
   async function start() {
     $('appVer').textContent = APP_VERSION;
     bind(); updateBadge(); fillSettings();
     await loadLocalProducts();
-    if (!store.get('key', '')) {
-      $('loginName').value = store.get('orderer', '');
-      $('login').classList.remove('hidden');
-      return;
-    }
     try { await downloadProducts(false); } catch (e) { toast(e.message, 3500); }
   }
   if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {})); }

@@ -17,7 +17,10 @@
 <body>
 <header class="top">
   <h1 id="title">商品をさがす</h1>
-  <span id="netState" class="net"></span>
+  <div class="topright">
+    <span id="netState" class="net"></span>
+    <button id="gearBtn" class="gear" aria-label="設定"><svg viewBox="0 0 24 24" width="24" height="24"><path d="M19.4 13a7.5 7.5 0 000-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 00-1.7-1L15 3h-4l-.4 2.9a7.6 7.6 0 00-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 000 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1L11 21h4l.4-2.9c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 110-7 3.5 3.5 0 010 7z" fill="currentColor"/></svg></button>
+  </div>
 </header>
 
 <main>
@@ -50,13 +53,84 @@
     </div>
   </section>
 
+  <!-- 受注（お店から） -->
+  <section id="view-juchu" class="view">
+    <div class="panel">
+      <h2>1. お客様</h2>
+      <div id="jCustBox">
+        <input id="jCustQ" class="inp" type="search" placeholder="お客様コード か お店の名前" autocomplete="off" enterkeyhint="search">
+        <ul id="jCustList" class="picklist"></ul>
+      </div>
+      <div id="jCustSel" class="selbox hidden"></div>
+    </div>
+    <div class="panel">
+      <h2>2. 足りない商品</h2>
+      <input id="jProdQ" class="inp" type="search" placeholder="5桁の商品コード か 商品名" autocomplete="off" enterkeyhint="search">
+      <ul id="jProdList" class="picklist"></ul>
+      <div id="jLines"></div>
+      <p id="jLinesEmpty" class="hint">商品コードか商品名を入れて、出てきた商品を押すと入ります。</p>
+    </div>
+    <div id="jTotals" class="panel hidden"></div>
+    <div class="panel">
+      <label class="field">入力した人
+        <input id="jOrderer" type="text" placeholder="名前" autocomplete="name">
+      </label>
+      <label class="field">備考（あれば）
+        <textarea id="jNote" rows="2" placeholder="例：次回訪問時に納品"></textarea>
+      </label>
+      <button id="jOrderBtn" class="primary big">受注を確定する</button>
+      <button id="jClearBtn" class="ghost big" style="margin-top:8px">入力をぜんぶ消す</button>
+      <p class="hint">確定すると、在庫から引き、足りない分は「要発注」に入ります。受注書（PDF）はお店に渡せます。</p>
+    </div>
+  </section>
+
+  <!-- 在庫 -->
+  <section id="view-stock" class="view">
+    <div id="stockSeg" class="seg">
+      <button data-kind="stock" class="active">在庫</button>
+      <button data-kind="needs">要発注</button>
+    </div>
+    <div id="stockPane">
+      <div class="panel">
+        <h2>在庫数を入れる・直す</h2>
+        <input id="sProdQ" class="inp" type="search" placeholder="5桁の商品コード か 商品名" autocomplete="off" enterkeyhint="search">
+        <ul id="sProdList" class="picklist"></ul>
+        <div id="sForm" class="hidden">
+          <div id="sSel" class="selbox"></div>
+          <div class="two">
+            <label class="field">在庫数<input id="sQty" type="number" inputmode="numeric" min="0"></label>
+            <label class="field">置き場所<input id="sPlace" type="text" placeholder="例：A棚-1"></label>
+          </div>
+          <button id="sSave" class="primary">保存する</button>
+        </div>
+      </div>
+      <div class="row-between">
+        <input id="sFilter" class="inp small" type="search" placeholder="一覧をしぼる" autocomplete="off">
+        <button id="sReload" class="ghost">新しくする</button>
+      </div>
+      <ul id="stockList" class="list"></ul>
+    </div>
+    <div id="needsPane" class="hidden">
+      <div class="row-between">
+        <p class="hint">在庫が足りず、メーカーに発注が必要な商品です（入荷済みは出ません）。</p>
+        <button id="nReload" class="ghost">新しくする</button>
+      </div>
+      <ul id="needsList" class="list"></ul>
+    </div>
+  </section>
+
   <!-- 履歴 -->
   <section id="view-history" class="view">
+    <div id="histSeg" class="seg">
+      <button data-kind="hacchu" class="active">仕入先への発注</button>
+      <button data-kind="juchu">お店からの受注</button>
+    </div>
     <div class="row-between">
       <p class="hint">新しい順に50件まで出ます。</p>
       <button id="reloadHistory" class="ghost">新しくする</button>
     </div>
-    <ul id="historyList" class="list"></ul>
+    <div id="histHacchu"><ul id="historyList" class="list"></ul></div>
+    <ul id="histJuchu" class="list hidden"></ul>
   </section>
 
   <!-- 設定 -->
@@ -65,14 +139,12 @@
       <label class="field">発注者の名前
         <input id="orderer" type="text" placeholder="例：小田" autocomplete="name">
       </label>
-      <label class="field">社内の合言葉
-        <input id="passkey" type="password" placeholder="合言葉" autocomplete="off">
-      </label>
       <button id="saveSettings" class="primary">保存する</button>
     </div>
     <div class="panel">
       <h2>商品データ</h2>
       <p id="dataInfo" class="hint">—</p>
+      <p id="jDataInfo" class="hint">—</p>
       <button id="refreshData" class="ghost">商品データを取り直す</button>
     </div>
     <div class="panel">
@@ -90,8 +162,9 @@
 <nav class="tabs">
   <button data-view="search" class="active"><svg viewBox="0 0 24 24"><path d="M10 4a6 6 0 104.47 10l4.27 4.27 1.41-1.41L15.9 12.6A6 6 0 0010 4zm0 2a4 4 0 110 8 4 4 0 010-8z" fill="currentColor"/></svg>さがす</button>
   <button data-view="cart"><svg viewBox="0 0 24 24"><path d="M7 18a2 2 0 100 4 2 2 0 000-4zm10 0a2 2 0 100 4 2 2 0 000-4zM3 3h2l2.6 10.4A2 2 0 009.5 15H18v-2H9.6l-.3-1H18a1 1 0 001-.8l1.5-6A1 1 0 0019.5 4H6.2L5.7 2H3z" fill="currentColor"/></svg>発注かご<span id="cartBadge" class="badge hidden">0</span></button>
+  <button data-view="juchu"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6zm8 1.5V8h4.5zM8 12v2h8v-2zm0 4v2h8v-2z" fill="currentColor"/></svg>受注<span id="juchuBadge" class="badge hidden">0</span></button>
+  <button data-view="stock"><svg viewBox="0 0 24 24"><path d="M12 2l9 5v10l-9 5-9-5V7zm0 2.3L5.4 8 12 11.7 18.6 8zM5 9.7v6.1l6 3.4v-6.1zm14 0l-6 3.4v6.1l6-3.4z" fill="currentColor"/></svg>在庫</button>
   <button data-view="history"><svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 00-9 9H1l4 4 4-4H6a7 7 0 112.05 4.95l-1.42 1.42A9 9 0 1013 3zm-1 5v5l4.25 2.52.77-1.28L13.5 12.2V8z" fill="currentColor"/></svg>履歴</button>
-  <button data-view="settings"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.5 7.5 0 000-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 00-1.7-1L15 3h-4l-.4 2.9a7.6 7.6 0 00-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 000 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1L11 21h4l.4-2.9c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 110-7 3.5 3.5 0 010 7z" fill="currentColor"/></svg>設定</button>
 </nav>
 
 <!-- バーコード読み取り -->
@@ -103,17 +176,6 @@
   </div>
 </div>
 
-<!-- 合言葉の入力（はじめて開いたとき） -->
-<div id="login" class="overlay hidden">
-  <div class="dialog">
-    <h2>はじめに</h2>
-    <p>社内の合言葉と、発注者の名前を入れてください。</p>
-    <label class="field">社内の合言葉<input id="loginKey" type="password" autocomplete="off"></label>
-    <label class="field">発注者の名前<input id="loginName" type="text" autocomplete="name"></label>
-    <p id="loginErr" class="err"></p>
-    <button id="loginBtn" class="primary big">はじめる</button>
-  </div>
-</div>
 
 <!-- 発注の確認・結果 -->
 <div id="modal" class="overlay hidden">
@@ -129,5 +191,6 @@
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
 <script src="app.js"></script>
+<script src="juchu.js"></script>
 </body>
 </html>
