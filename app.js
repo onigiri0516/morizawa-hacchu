@@ -4,7 +4,7 @@
  */
 (function () {
   'use strict';
-  const APP_VERSION = '1.2.0';
+  const APP_VERSION = '1.2.2';
   const API = (window.APP_CONFIG && window.APP_CONFIG.API_URL) || '';
   const KEY = (window.APP_CONFIG && window.APP_CONFIG.KEY) || '';
   const MAX_RESULTS = 100;
@@ -465,6 +465,13 @@
     await loadLocalProducts();
     try { await downloadProducts(false); } catch (e) { toast(e.message, 3500); }
   }
-  if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {})); }
+  if ('serviceWorker' in navigator) {
+    // 新しい版が届いたら、1回だけ自動で読み直す（古い画面のまま使わないように）
+    let reloaded = false;
+    const hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController && !reloaded) { reloaded = true; location.reload(); } });
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((r) => r.update()).catch(() => {}));
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') navigator.serviceWorker.getRegistration().then((r) => r && r.update()).catch(() => {}); });
+  }
   document.addEventListener('DOMContentLoaded', start);
 })();
